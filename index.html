@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>NEO OBFUSCATOR</title>
+<style>
+body {
+    margin:0;
+    font-family:monospace;
+    background: radial-gradient(circle at center, #02040a, #000);
+    color:#0ff;
+    overflow:hidden;
+}
+.container {
+    padding:20px;
+}
+h1 {
+    text-align:center;
+    text-shadow:0 0 10px #0ff;
+}
+textarea {
+    width:100%;
+    height:200px;
+    background:#000;
+    color:#0ff;
+    border:1px solid #0ff;
+    margin-top:10px;
+    padding:10px;
+}
+button {
+    width:100%;
+    padding:15px;
+    margin-top:10px;
+    background:#0ff;
+    border:none;
+    color:#000;
+    font-weight:bold;
+    cursor:pointer;
+}
+button:hover {
+    box-shadow:0 0 15px #0ff;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+    <h1>⚡ NEO OBFUSCATOR ⚡</h1>
+
+    <textarea id="input" placeholder="ここにコードを貼る"></textarea>
+    <button onclick="obfuscate()">OBFUSCATE</button>
+    <textarea id="output" placeholder="結果"></textarea>
+</div>
+
+<script>
+function randomString(len){
+    let chars="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    let result="";
+    for(let i=0;i<len;i++){
+        result+=chars[Math.floor(Math.random()*chars.length)];
+    }
+    return result;
+}
+
+function generateDummyLines(count){
+    let dummy="";
+    for(let i=0;i<count;i++){
+        dummy+="var "+randomString(8)+"="+Math.floor(Math.random()*9999)+";\n";
+    }
+    return dummy;
+}
+
+function encodeString(str){
+    return btoa(unescape(encodeURIComponent(str)));
+}
+
+function obfuscate(){
+    let code=document.getElementById("input").value;
+
+    // 🔥 文字列エンコード
+    let encoded = encodeString(code);
+
+    // 🔥 ランダム変数
+    let varName = randomString(10);
+
+    // 🔥 ダミーコード
+    let dummy = generateDummyLines(200);
+
+    // 🔥 最終コード
+    let finalCode = `
+(function(){
+${dummy}
+var ${varName} = "${encoded}";
+eval(decodeURIComponent(escape(atob(${varName}))));
+})();
+`;
+
+    document.getElementById("output").value = finalCode;
+}
+</script>
+</body>
+</html>
