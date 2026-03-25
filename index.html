@@ -2,143 +2,67 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>NEO OBFUSCATOR v3</title>
-
+<title>Lua Obfuscator</title>
 <style>
-body{
-    margin:0;
-    font-family:monospace;
-    background:radial-gradient(circle,#010308,#000);
-    color:#0ff;
-}
-.container{padding:20px;}
-h1{text-align:center;text-shadow:0 0 20px #0ff;}
-textarea{
-    width:100%;
-    height:200px;
-    background:#000;
-    color:#0ff;
-    border:1px solid #0ff;
-    padding:10px;
-    margin-top:10px;
-}
-button{
-    width:100%;
-    padding:15px;
-    margin-top:10px;
-    background:#0ff;
-    border:none;
-    font-weight:bold;
-    cursor:pointer;
-}
-button:hover{box-shadow:0 0 15px #0ff;}
-.copy{background:#0f0;color:#000;}
-.status{text-align:center;margin-top:10px;}
+body{background:#000;color:#0ff;font-family:monospace;padding:20px;}
+textarea{width:100%;height:200px;background:#000;color:#0ff;border:1px solid #0ff;margin-top:10px;}
+button{width:100%;padding:10px;margin-top:10px;background:#0ff;border:none;}
 </style>
 </head>
-
 <body>
-<div class="container">
-<h1>⚡ NEO OBFUSCATOR v3 ⚡</h1>
 
-<textarea id="input" placeholder="コード入力"></textarea>
-<button onclick="obfuscate()">OBFUSCATE</button>
-<button class="copy" onclick="copyCode()">COPY</button>
-<textarea id="output" placeholder="結果"></textarea>
-<div class="status" id="status"></div>
-</div>
+<h1>Lua Obfuscator (Stable)</h1>
+
+<textarea id="input" placeholder="Luaコード"></textarea>
+<button onclick="obf()">OBFUSCATE</button>
+<textarea id="output"></textarea>
 
 <script>
 function rand(len){
-    const c="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const c="abcdefghijklmnopqrstuvwxyz";
     let r="";
-    for(let i=0;i<len;i++){
-        r+=c[Math.floor(Math.random()*c.length)];
-    }
+    for(let i=0;i<len;i++) r+=c[Math.floor(Math.random()*c.length)];
     return r;
 }
 
-// XOR
-function xorEncrypt(str,key){
-    let out="";
+// XOR（安全版）
+function xor(str,key){
+    let out=[];
     for(let i=0;i<str.length;i++){
-        out+=String.fromCharCode(str.charCodeAt(i)^key);
+        out.push(str.charCodeAt(i)^key);
     }
-    return out;
+    return out.join(",");
 }
 
-// Base64
-function b64(str){
-    return btoa(unescape(encodeURIComponent(str)));
-}
+function obf(){
+    let code=document.getElementById("input").value;
+    let key=Math.floor(Math.random()*200)+20;
 
-// ダミー
-function dummy(n){
-    let d="";
-    for(let i=0;i<n;i++){
-        d+="var "+rand(6)+"="+Math.random()+";\n";
-    }
-    return d;
-}
+    let encoded=xor(code,key);
 
-function obfuscate(){
-    try{
-        let code=document.getElementById("input").value;
-        if(!code) return;
+    let varName=rand(8);
 
-        let key=Math.floor(Math.random()*255);
+    let lua = `
+local ${varName} = {${encoded}}
+local k = ${key}
 
-        // 多層処理
-        let step1=xorEncrypt(code,key);
-        let step2=b64(step1);
-        let step3=b64(step2);
+local function d(t,k)
+    local s = ""
+    for i=1,#t do
+        s = s .. string.char(bit32.bxor(t[i],k))
+    end
+    return s
+end
 
-        let varName=rand(10);
-        let keyName=rand(6);
-
-        let finalCode=`
-(function(){
-${dummy(300)}
-
-var ${keyName}=${key};
-var ${varName}="${step3}";
-
-// decode
-function d(a){
-    return decodeURIComponent(escape(atob(a)));
-}
-function x(s,k){
-    let o="";
-    for(let i=0;i<s.length;i++){
-        o+=String.fromCharCode(s.charCodeAt(i)^k);
-    }
-    return o;
-}
-
-// anti simple debug
-setInterval(function(){debugger},2000);
-
-// 実行
-(new Function(
-    x(d(d(${varName})),${keyName})
-))();
-
-})();
+local f = loadstring(d(${varName},k))
+if f then
+    f()
+end
 `;
 
-        document.getElementById("output").value=finalCode;
-        document.getElementById("status").innerText="✔ 完了（強化版）";
-    }catch(e){
-        document.getElementById("status").innerText="エラー: "+e;
-    }
-}
-
-function copyCode(){
-    let out=document.getElementById("output");
-    out.select();
-    document.execCommand("copy");
-    document.getElementById("status").innerText="✔ コピーした";
+    document.getElementById("output").value = lua;
 }
 </script>
+
 </body>
 </html>
